@@ -32,4 +32,67 @@ header b{display:block;font-size:13px;letter-spacing:.06em}header span{color:var
 .sub{text-align:center;color:var(--mut);font-size:13px;margin-bottom:6px}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;margin-top:12px;overflow:hidden}
 .gh{display:flex;align-items:center;gap:10px;padding:10px 14px}
-.tag{min-width:54px;text-align:center;border-radius:8px
+.tag{min-width:54px;text-align:center;border-radius:8px;padding:4px 8px;font-weight:800;font-size:13px}
+.gh small{color:var(--mut);font-size:13px}
+.pm{padding:12px 14px;border-top:1px solid var(--line);font-size:17px}
+.pm i{font-style:normal;color:var(--mut);font-size:13px;margin-right:8px;font-weight:600}
+.pm b{text-transform:uppercase}
+.msg{margin-top:16px;padding:14px;border-radius:12px;background:var(--bad);color:var(--badink);font-weight:700;text-align:center}
+footer{text-align:center;color:var(--mut);font-size:12px;padding:18px 14px}
+</style></head>
+<body>
+<header><b>POLÍCIA MILITAR DE RORAIMA</b><span>5º GPM — VILA EQUADOR</span></header>
+<div class="wrap">
+ <div class="nav"><button id="pv" aria-label="Dia anterior">‹</button><input id="dp" type="date" aria-label="Escolher data"><button id="nx" aria-label="Próximo dia">›</button></div>
+ <button class="hoje" id="hj">Hoje</button>
+ <div class="dt" id="dt"></div><div class="sub" id="sb"></div>
+ <div id="out"></div>
+</div>
+<footer>Consulta da escala de serviço. Em caso de dúvida, confirme com o comandante do 5º GPM.</footer>
+<script>
+const MN=["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+const WD=["Domingo","Segunda-feira","Terça-feira","Quarta-feira","Quinta-feira","Sexta-feira","Sábado"];
+const FN={SV:["Serviço 24h","#fff94d","#000000"],SVID:["Serviço Extra Diurno","#4f46e5","#ffffff"],SVIN:["Serviço Extra Noturno","#e44444","#ffffff"],SEDE:["Serviço na Sede","#0891b2","#ffffff"],F:["Férias Regulamentares","#000000","#ffffff"],C:["Curso / Capacitação","#9333ea","#ffffff"],JM:["Junta Médica","#dd2cc5","#ffffff"],MIS:["Missão Oficial","#41753e","#ffffff"]};
+const ORDER=["SV","SVID","SVIN","SEDE","MIS","C","JM","F"];
+const SERV=["SV","SVID","SVIN","SEDE"];
+const R=(a,b,c)=>{const o={};for(let i=a;i<=b;i++)o[i]=c;return o};
+const S=(...p)=>Object.assign({},...p);
+/* Chave "ano-mês" (mês de 0 a 11). 2026-10 = novembro de 2026 */
+const DATA={"2026-10":[
+ ["3º SGT PM","THYAGO",{2:"SV",5:"SVIN",7:"SV",10:"SVIN",12:"SV",16:"SVID",17:"SV",18:"SEDE",22:"SV",27:"SV"}],
+ ["CB PM","EILTON CARDOSO",{1:"SV",6:"SV",10:"SVID",11:"SV",16:"SV",20:"SVID",21:"SV",26:"SV"}],
+ ["SD PM","PESSOA",S({5:"SV",18:"SV",23:"SV",25:"SVIN",28:"SV",30:"SVIN"},R(8,17,"MIS"))],
+ ["CB PM","HERINALDO",S({1:"MIS",2:"MIS",4:"SV",6:"SVIN",9:"SV",10:"SVIN",14:"SV"},R(16,30,"F"))],
+ ["SD PM","D SILVA",S(R(1,20,"F"),{22:"SV",26:"SVID",27:"SV",30:"SVID"})],
+ ["SD PM","WHATILAS",S({2:"SV",5:"SVIN",7:"SV",11:"SEDE",12:"SV",13:"SEDE",14:"SVIN"},R(15,30,"F"))],
+ ["CB PM","VELOSO",{4:"SV",9:"SV",14:"SV",19:"SV",20:"SVIN",21:"SVIN",24:"SV",29:"SV"}],
+ ["SD PM","KASSIO",S(R(1,9,"MIS"),{10:"SVID",11:"SV",15:"SV",20:"SV",25:"SV",26:"SVIN",30:"SV"})],
+ ["SD PM","PEDROZO",{3:"SV",5:"SVID",8:"SV",13:"SV",18:"SV",23:"SV",25:"SVID",28:"SV"}],
+ ["SD PM","BALBINA",S({3:"SV",6:"SVID",8:"SV",13:"SV",17:"SV",21:"SVID"},R(23,30,"MIS"))]
+]};
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const iso=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+let cur=new Date();cur.setHours(12,0,0,0);
+function show(){
+ const y=cur.getFullYear(),m=cur.getMonth(),d=cur.getDate(),list=DATA[y+"-"+m];
+ $("dp").value=iso(cur);
+ const hoje=new Date().toDateString()==cur.toDateString();
+ $("dt").textContent=`${WD[cur.getDay()]}, ${d} de ${MN[m]}`;
+ $("sb").textContent=y+(hoje?" · hoje":"");
+ if(!list){$("out").innerHTML='<div class="msg">A escala de '+MN[m]+' de '+y+' ainda não foi publicada.</div>';return}
+ const g={};list.forEach(o=>{const c=o[2][d]||"";(g[c]=g[c]||[]).push(o)});
+ const n=SERV.reduce((a,c)=>a+(g[c]||[]).length,0);
+ let h=`<div class="sub"><b>${n}</b> de serviço neste dia</div>`;
+ if(!n)h+='<div class="msg">Ninguém escalado para serviço neste dia.</div>';
+ [...ORDER,...Object.keys(g).filter(c=>c&&!ORDER.includes(c)),""].forEach(c=>{const l=g[c];if(!l)return;const f=FN[c];
+  h+=`<div class="card"><div class="gh"><span class="tag" style="${f?`background:${f[1]};color:${f[2]}`:"background:#e2e8f0;color:#0f172a"}">${esc(c||"—")}</span><small>${esc(f?f[0]:"Sem escala marcada")} · ${l.length}</small></div>`+
+  l.map(o=>`<div class="pm"><i>${esc(o[0])}</i><b>${esc(o[1])}</b></div>`).join("")+"</div>"});
+ $("out").innerHTML=h}
+const go=n=>{cur.setDate(cur.getDate()+n);show()};
+$("pv").onclick=()=>go(-1);$("nx").onclick=()=>go(1);
+$("hj").onclick=()=>{cur=new Date();cur.setHours(12,0,0,0);show()};
+$("dp").onchange=e=>{const v=e.target.value;if(!v)return;const p=v.split("-").map(Number);cur=new Date(p[0],p[1]-1,p[2],12);show()};
+show();
+</script>
+</body></html>
